@@ -1,0 +1,21 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    fiddle (1.1.8)
+    opengl-bindings (1.6.16)
+      fiddle (~> 1.0)
+
+PLATFORMS
+  arm64-darwin-24
+  ruby
+
+DEPENDENCIES
+  opengl-bindings (~> 1.6)
+
+CHECKSUMS
+  bundler (4.0.11) sha256=5bcec0fb78302e48d02ee46f10ee6e6942be647ba5b44a6d1ddfda9a240ce785
+  fiddle (1.1.8) sha256=7fa8ee3627271497f3add5503acdbc3f40b32f610fc1cf49634f083ef3f32eee
+  opengl-bindings (1.6.16) sha256=d9064c886f697660294c92c2f9266ac98e41fba1cbda79af08b2423535e2b959
+
+BUNDLED WITH
+  4.0.11
