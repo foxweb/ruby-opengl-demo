@@ -36,6 +36,13 @@ CAMERA_DIST_STEP = 4.0   # units per second (arrows)
 CAMERA_YAW_STEP  = 90.0  # degrees per second (arrows)
 ZOOM_SCROLL_STEP = 0.4
 MOUSE_YAW_SENS   = 0.25  # degrees per pixel
+SPEED_STEP       = 0.05  # 5% per +/- key press
+RPS_AT_HALF      = 0.2   # revolutions/sec at 50% speed
+RPS_AT_FULL      = 10.0  # revolutions/sec at 100% speed
+# Relative tumble weights (largest axis defines "one revolution")
+SPIN_WEIGHT_X    = 50.0
+SPIN_WEIGHT_Y    = 35.0
+SPIN_WEIGHT_Z    = 20.0
 
 FACES = [
   { color: [1.0, 0.25, 0.25], verts: [[-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]] },         # front  red
@@ -82,6 +89,7 @@ FONT_5X7 = {
 
 state = {
   rotating: true,
+  speed: 0.5, # 0.0 .. 1.0 → 0% .. 100% (default 50% ≈ 0.2 rev/s)
   camera_dist: 5.0,
   camera_yaw: 0.0,
   angle_x: 0.0,
@@ -128,6 +136,16 @@ end
 
 def clamp(value, min_v, max_v)
   [[value, min_v].max, max_v].min
+end
+
+# Map UI speed 0..1 to revolutions/sec: 50% → 0.2, 100% → 10 (piecewise linear).
+def speed_to_rps(speed)
+  speed = clamp(speed, 0.0, 1.0)
+  if speed <= 0.5
+    RPS_AT_HALF * (speed / 0.5)
+  else
+    RPS_AT_HALF + (RPS_AT_FULL - RPS_AT_HALF) * ((speed - 0.5) / 0.5)
+  end
 end
 
 def draw_char_5x7(px, py, char, scale)
@@ -211,6 +229,10 @@ key_callback = GLFW.create_callback(:GLFWkeyfun) do |window, key, _scancode, act
   elsif key == GLFW_KEY_SPACE && action == GLFW_PRESS
     state[:rotating] = !state[:rotating]
     puts state[:rotating] ? 'Rotation resumed' : 'Rotation paused'
+  elsif [GLFW_KEY_EQUAL, GLFW_KEY_KP_ADD].include?(key) && (action == GLFW_PRESS || action == GLFW_REPEAT)
+    state[:speed] = clamp(state[:speed] + SPEED_STEP, 0.0, 1.0)
+  elsif [GLFW_KEY_MINUS, GLFW_KEY_KP_SUBTRACT].include?(key) && (action == GLFW_PRESS || action == GLFW_REPEAT)
+    state[:speed] = clamp(state[:speed] - SPEED_STEP, 0.0, 1.0)
   end
 end
 
@@ -264,12 +286,13 @@ glClearColor(0.08, 0.08, 0.12, 1.0)
 
 puts <<~HELP
   Controls:
-    Space       — pause / resume cube rotation
-    Up / Down   — zoom in / out (clamped)
+    Space        — pause / resume cube rotation
+    + / -        — rotation speed 0% .. 100% (also keypad)
+    Up / Down    — zoom in / out (clamped)
     Left / Right — yaw camera (360° returns to the same view)
-    Mouse drag  — yaw camera
-    Scroll      — zoom
-    Esc         — quit
+    Mouse drag   — yaw camera
+    Scroll       — zoom
+    Esc          — quit
 HELP
 
 last_time = glfwGetTime
@@ -304,9 +327,13 @@ until glfwWindowShouldClose(window) != 0
   end
 
   if state[:rotating]
-    state[:angle_x] += 50.0 * dt
-    state[:angle_y] += 35.0 * dt
-    state[:angle_z] += 20.0 * dt
+    rps = speed_to_rps(state[:speed])
+    # Scale tumble so the primary axis (X) completes `rps` revolutions per second.
+    deg_per_sec = rps * 360.0
+    scale = deg_per_sec / SPIN_WEIGHT_X
+    state[:angle_x] += SPIN_WEIGHT_X * scale * dt
+    state[:angle_y] += SPIN_WEIGHT_Y * scale * dt
+    state[:angle_z] += SPIN_WEIGHT_Z * scale * dt
   end
 
   w_ptr = ' ' * 8
@@ -338,9 +365,10 @@ until glfwWindowShouldClose(window) != 0
 
   rot_label = state[:rotating] ? 'ON' : 'OFF'
   status = format(
-    'FPS:%5.1f  |  ROT:%s  |  DIST:%.2f  |  YAW:%6.1f',
+    'FPS:%5.1f  |  ROT:%s  |  SPD:%3.0f%%  |  DIST:%.2f  |  YAW:%6.1f',
     state[:fps],
     rot_label,
+    state[:speed] * 100.0,
     state[:camera_dist],
     state[:camera_yaw]
   )
