@@ -4,8 +4,11 @@ A short demo: a colorful rotating 3D cube in Ruby + OpenGL via GLFW, with a smal
 
 ## Dependencies
 
-- Ruby 3+
-- [GLFW](https://www.glfw.org/) (`brew install glfw` on macOS)
+- Ruby 3+ ([RubyInstaller](https://rubyinstaller.org/) on Windows)
+- [GLFW](https://www.glfw.org/)
+  - **macOS:** `brew install glfw`
+  - **Debian/Ubuntu:** `sudo apt install -y libglfw3`
+  - **Windows:** download [GLFW pre-compiled binaries](https://www.glfw.org/download.html) and place `glfw3.dll` next to `cube.rb` (or on `PATH`). Alternatively with MSYS2: `pacman -S mingw-w64-x86_64-glfw`. OpenGL comes with the GPU drivers — no separate install.
 - gem `opengl-bindings`
 
 ```bash
